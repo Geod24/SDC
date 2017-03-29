@@ -13,10 +13,10 @@ final class SDC {
 	import d.ir.symbol;
 	Module[] modules;
 	
-	import util.json;
-	this(string name, JSON conf, uint optLevel) {
+	import util.json, d.context.config;
+	this(string name, JSON fileConfig, Config config) {
 		import std.algorithm, std.array, std.conv, std.path;
-		auto includePaths = conf["includePath"]
+		auto includePaths = fileConfig["includePath"]
 			.array
 			.map!(p => expandTilde(cast(string) p)
 				.asAbsolutePath
@@ -24,14 +24,14 @@ final class SDC {
 				.to!string())
 			.array();
 		
-		auto linkerParams = conf["libPath"]
-			.array
-			.map!(path => " -L" ~ (cast(string) path))
-			.join();
+		config.includePaths = includePaths ~ config.includePaths;
 		
-		import d.context.config;
-		Config config;
-		config.includePaths = includePaths;
+		auto linkerPaths = fileConfig["libPath"]
+			.array
+			.map!(path => cast(string) path)
+			.array();
+		
+		config.linkerPaths = linkerPaths ~ config.linkerPaths;
 		
 		context = new Context(config);
 		
@@ -45,8 +45,6 @@ final class SDC {
 					scheduler,
 					obj,
 					name,
-					optLevel,
-					linkerParams,
 				);
 			}
 			
@@ -67,8 +65,6 @@ final class SDC {
 			semantic.scheduler,
 			semantic.object,
 			name,
-			optLevel,
-			linkerParams,
 		);
 	}
 	
